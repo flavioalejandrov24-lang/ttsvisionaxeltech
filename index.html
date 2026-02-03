@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURALEYE</title>
+    <title>NEURALEYEAXL</title>
     <style>
         * {
             margin: 0;
@@ -504,9 +504,8 @@
     </div>
 
     <script>
-        // ✅ Configuración para Gemini 2.5 Flash
-        const GEMINI_API_KEY = "AIzaSyBhx7hFJ5Fq1Z9wuImLP1OOSaSAeGnx2fI";
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
+        // ✅ URL de tu servidor Vercel (API key protegida)
+        const API_URL = "https://ttsvisionaxeltech.vercel.app/api/gemini";
 
         const video = document.getElementById('video');
         const uploadedImage = document.getElementById('uploadedImage');
@@ -727,29 +726,17 @@
                     base64Image = uploadedImageData.split(',')[1];
                 }
 
-                console.log("🚀 Enviando petición a Gemini 2.5 Flash");
+                console.log("🚀 Enviando a Vercel...");
                 
-                // Formato correcto para Gemini API
-                const requestBody = {
-                    contents: [{
-                        parts: [
-                            { text: userMsg },
-                            {
-                                inline_data: {
-                                    mime_type: "image/jpeg",
-                                    data: base64Image
-                                }
-                            }
-                        ]
-                    }]
-                };
-
-                const response = await fetch(GEMINI_API_URL, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify({
+                        image: base64Image,
+                        prompt: userMsg
+                    })
                 });
 
                 console.log("📡 Status:", response.status);
@@ -763,8 +750,7 @@
                 const data = await response.json();
                 console.log("✅ Respuesta recibida:", data);
                 
-                // Extraer la respuesta de Gemini
-                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No hay respuesta.";
+                const responseText = data.response || "No hay respuesta.";
                 addMessage("assistant", responseText);
 
             } catch (err) {
