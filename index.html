@@ -504,8 +504,9 @@
     </div>
 
     <script>
-        // ✅ URL CORRECTA DE TU FLASK API EN HUGGING FACE
-        const API_URL = "https://axeltech24-llamadaapisecret.hf.space/";
+        // ✅ Configuración para Gemini 2.5 Flash
+        const GEMINI_API_KEY = "AIzaSyBhx7hFJ5Fq1Z9wuImLP1OOSaSAeGnx2fI";
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
 
         const video = document.getElementById('video');
         const uploadedImage = document.getElementById('uploadedImage');
@@ -726,17 +727,29 @@
                     base64Image = uploadedImageData.split(',')[1];
                 }
 
-                console.log("🚀 Enviando petición a:", API_URL);
+                console.log("🚀 Enviando petición a Gemini 2.5 Flash");
                 
-                const response = await fetch(API_URL, {
+                // Formato correcto para Gemini API
+                const requestBody = {
+                    contents: [{
+                        parts: [
+                            { text: userMsg },
+                            {
+                                inline_data: {
+                                    mime_type: "image/jpeg",
+                                    data: base64Image
+                                }
+                            }
+                        ]
+                    }]
+                };
+
+                const response = await fetch(GEMINI_API_URL, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        image: base64Image,
-                        prompt: userMsg
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 console.log("📡 Status:", response.status);
@@ -750,7 +763,8 @@
                 const data = await response.json();
                 console.log("✅ Respuesta recibida:", data);
                 
-                const responseText = data.response || "No hay respuesta.";
+                // Extraer la respuesta de Gemini
+                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No hay respuesta.";
                 addMessage("assistant", responseText);
 
             } catch (err) {
