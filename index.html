@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEURALEYE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #020617;
+            color: white;
+            min-height: 100vh;
+            padding: 1rem;
+            padding-bottom: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            height: calc(100vh - 2rem);
+            position: relative;
+        }
+
+        .header {
+            background-color: #0f172a;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-weight: 900;
+            font-style: italic;
+            color: #818cf8;
+            letter-spacing: 0.1em;
+            font-size: 1.25rem;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .upload-btn {
+            width: 2rem;
+            height: 2rem;
+            background: rgba(251, 191, 36, 0.3);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: rgba(251, 191, 36, 0.5);
+            border-color: rgba(251, 191, 36, 0.7);
+        }
+
+        .camera-btn {
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+        }
+
+        .camera-btn.front {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .camera-btn.front:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .camera-btn.front.active {
+            background-color: rgba(129, 140, 248, 0.5);
+            color: white;
+        }
+
+        .camera-btn.back {
+            background-color: rgba(251, 191, 36, 0.3);
+            color: #f9fafb;
+        }
+
+        .camera-btn.back:hover {
+            background-color: rgba(251, 191, 36, 0.5);
+        }
+
+        .camera-btn.back.active {
+            background-color: rgba(251, 191, 36, 0.7);
+            color: white;
+        }
+
+        .toggle-camera-btn {
+            width: 2rem;
+            height: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            color: #6366f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .toggle-camera-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .toggle-camera-btn.off {
+            color: #ef4444;
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .status-dot.active {
+            background-color: #22c55e;
+            color: #22c55e;
+        }
+
+        .status-dot.inactive {
+            background-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .video-container {
+            position: relative;
+            aspect-ratio: 16/9;
+            background-color: black;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        #video, #uploadedImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #uploadedImage {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .start-button {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            color: white;
+            padding: 1rem;
+            background-color: rgba(79, 70, 229, 0.9);
+        }
+
+        .start-button:hover {
+            background-color: rgba(99, 102, 241, 0.9);
+        }
+
+        .start-button.hidden {
+            display: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding-right: 0.25rem;
+            min-height: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.625rem;
+            color: #a5b4fc;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            opacity: 0.7;
+        }
+
+        .message {
+            padding: 0.75rem;
+            border-radius: 1rem;
+            border: 1px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            margin-left: 2rem;
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            background-color: rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+            margin-right: 2rem;
+        }
+
+        .message.error {
+            background-color: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            margin-right: 2rem;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.625rem;
+            margin-bottom: 0.25rem;
+            font-family: monospace;
+            color: #a5b4fc;
+        }
+
+        .message-sender {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .message.user .message-sender {
+            color: #fff;
+        }
+
+        .message.assistant .message-sender {
+            color: #818cf8;
+        }
+
+        .message.error .message-sender {
+            color: #fca5a5;
+        }
+
+        .volume-icon {
+            width: 0.625rem;
+            height: 0.625rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .volume-icon:hover {
+            transform: scale(1.2);
+        }
+
+        .message-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .input-form {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1000 !important;
+            padding: 1rem !important;
+            padding-bottom: env(safe-area-inset-bottom, 1rem) !important;
+            background: linear-gradient(to top, #020617 80%, transparent) !important;
+            flex-shrink: 0 !important;
+        }
+
+        .input-field {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            border: 2px solid rgba(99, 102, 241, 0.5) !important;
+            border-radius: 1rem;
+            padding: 1rem !important;
+            padding-right: 3.5rem !important;
+            font-size: 1rem !important;
+            color: #020617 !important;
+            outline: none !important;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+        }
+
+        .input-field::placeholder {
+            color: rgba(2, 6, 23, 0.5);
+        }
+
+        .input-field:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2) !important;
+            transform: scale(1.02) !important;
+        }
+
+        .submit-button {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2.5rem;
+            height: 2.5rem;
+            background-color: #4f46e5;
+            border-radius: 0.75rem;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .submit-button:hover:not(:disabled) {
+            background-color: #6366f1;
+        }
+
+        .submit-button:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .icon.large {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 0.5rem;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 1rem;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+
+        @media (max-width: 600px) {
+            .video-container {
+                aspect-ratio: 4/3;
+            }
+            
+            .container {
+                padding-bottom: 6rem;
+            }
+            
+            .input-form {
+                padding: 0.75rem !important;
+            }
+            
+            .input-field {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>NEURAL EYE v1</h1>
+            <div class="camera-controls">
+                <button class="upload-btn" id="uploadBtn" title="Subir imagen desde galería">
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 1rem; height: 1rem;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </button>
+                <button class="camera-btn front" id="frontBtn">Frontal</button>
+                <button class="camera-btn back active" id="backBtn">Trasera</button>
+                <button class="toggle-camera-btn off" id="toggleCameraBtn" title="Encender/Apagar cámara">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M1 1l22 22M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34m-7.72-2.06a4 4 0 1 1-5.56-5.56"/>
+                    </svg>
+                </button>
+                <div class="status-dot inactive" id="statusDot"></div>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay playsinline muted></video>
+            <img id="uploadedImage" alt="Imagen cargada">
+            <button class="start-button" id="startButton">
+                <svg class="icon large" viewBox="0 0 24 24">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <div class="start-button-text">
+                    <div class="highlight">Presiona AQUÍ</div>
+                    <div class="normal">Para activar la visión</div>
+                </div>
+            </button>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="chat-header">
+                <svg class="icon" viewBox="0 0 24 24" style="width: 0.75rem; height: 0.75rem;">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Conversación
+            </div>
+        </div>
+
+        <form class="input-form" id="chatForm">
+            <input 
+                type="text" 
+                class="input-field" 
+                id="chatInput"
+                placeholder="Escribe tu pregunta..."
+                autocomplete="off"
+            />
+            <button type="submit" class="submit-button" id="submitButton">
+                <svg class="icon" id="sendIcon" viewBox="0 0 24 24">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // ✅ URL CORRECTA DE TU FLASK API EN HUGGING FACE
+        const API_URL = "https://axeltech24-llamadaapisecret.hf.space/";
+
+        const video = document.getElementById('video');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const startButton = document.getElementById('startButton');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusDot = document.getElementById('statusDot');
+        const chatContainer = document.getElementById('chatContainer');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const submitButton = document.getElementById('submitButton');
+        const sendIcon = document.getElementById('sendIcon');
+        const frontBtn = document.getElementById('frontBtn');
+        const backBtn = document.getElementById('backBtn');
+        const toggleCameraBtn = document.getElementById('toggleCameraBtn');
+
+        let isActive = false;
+        let isThinking = false;
+        let messages = [];
+        let mediaStream = null;
+        let selectedFacingMode = "environment";
+        let currentImageSource = null;
+        let uploadedImageData = null;
+        
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        function updateControls() {
+            if (!isThinking) {
+                chatInput.disabled = false;
+                submitButton.disabled = false;
+            } else {
+                chatInput.disabled = false;
+                submitButton.disabled = true;
+            }
+        }
+
+        async function switchCamera(facingMode) {
+            if (!isActive || currentImageSource === 'upload') {
+                selectedFacingMode = facingMode;
+                updateCameraButtons();
+                return;
+            }
+
+            selectedFacingMode = facingMode;
+            updateCameraButtons();
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                const constraints = { video: { facingMode: selectedFacingMode } };
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = mediaStream;
+            } catch (err) {
+                console.error("Error al cambiar cámara:", err);
+                addMessage("error", "Error al cambiar de cámara.");
+            }
+        }
+
+        function updateCameraButtons() {
+            if (selectedFacingMode === "user") {
+                frontBtn.classList.add('active');
+                backBtn.classList.remove('active');
+            } else {
+                frontBtn.classList.remove('active');
+                backBtn.classList.add('active');
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            video.srcObject = null;
+            video.style.display = 'block';
+            uploadedImage.style.display = 'none';
+            uploadedImageData = null;
+            currentImageSource = null;
+            isActive = false;
+            statusDot.classList.remove('active');
+            statusDot.classList.add('inactive');
+            toggleCameraBtn.classList.add('off');
+            startButton.classList.remove('hidden');
+        }
+
+        function speak(text) {
+            if (speechSynthesis.speaking) speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            speechSynthesis.speak(utterance);
+        }
+
+        function addMessage(sender, text) {
+            const time = new Date().toLocaleTimeString();
+            const messageId = messages.length;
+            messages.push({ sender, text, time });
+
+            if (messages.length > 4) {
+                messages.shift();
+            }
+
+            chatContainer.innerHTML = '<div class="chat-header"><svg class="icon" viewBox="0 0 24 24" style="width: 0.75rem; height: 0.75rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Conversación</div>';
+            
+            messages.forEach((msg, i) => {
+                const msgEl = document.createElement('div');
+                msgEl.className = `message ${msg.sender}`;
+                msgEl.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-sender">${msg.sender === 'user' ? 'Tú' : msg.sender === 'error' ? 'Error' : 'Neural Eye'}</span>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span>${msg.time}</span>
+                            ${msg.sender === 'assistant' ? `
+                                <svg class="volume-icon" viewBox="0 0 24 24" onclick="window.speakMessage(${i})">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                </svg>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <p class="message-text">${msg.text}</p>
+                `;
+                chatContainer.appendChild(msgEl);
+            });
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            if (sender === 'assistant') {
+                speak(text);
+            }
+        }
+
+        window.speakMessage = (index) => {
+            if (messages[index]) speak(messages[index].text);
+        };
+
+        async function startCamera() {
+            stopCamera();
+            try {
+                const constraints = { video: { facingMode: selectedFacingMode } };
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = mediaStream;
+                video.style.display = 'block';
+                uploadedImage.style.display = 'none';
+                startButton.classList.add('hidden');
+                statusDot.classList.remove('inactive');
+                statusDot.classList.add('active');
+                isActive = true;
+                currentImageSource = 'camera';
+                toggleCameraBtn.classList.remove('off');
+            } catch (err) {
+                console.error("Error cámara:", err);
+                let errorMsg = "No se pudo acceder a la cámara.";
+                if (err.name === 'NotAllowedError') errorMsg = "Permiso de cámara denegado.";
+                else if (err.name === 'NotFoundError') errorMsg = "No hay cámara disponible.";
+                addMessage("error", errorMsg);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) {
+                addMessage("error", "Selecciona una imagen válida.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                uploadedImageData = event.target.result;
+                uploadedImage.src = uploadedImageData;
+                uploadedImage.style.display = 'block';
+                video.style.display = 'none';
+                startButton.classList.add('hidden');
+                statusDot.classList.remove('inactive');
+                statusDot.classList.add('active');
+                isActive = true;
+                currentImageSource = 'upload';
+                toggleCameraBtn.classList.remove('off');
+                fileInput.value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            const userMsg = chatInput.value.trim();
+            if (!userMsg) return;
+
+            if (!isActive) {
+                addMessage("error", "Activa la cámara o sube una imagen primero.");
+                return;
+            }
+
+            if (isThinking) return;
+
+            addMessage("user", userMsg);
+            chatInput.value = "";
+            isThinking = true;
+            updateControls();
+            sendIcon.classList.add('spin');
+
+            try {
+                let base64Image;
+                if (currentImageSource === 'camera') {
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    base64Image = canvas.toDataURL("image/jpeg", 0.8).split(',')[1];
+                } else {
+                    base64Image = uploadedImageData.split(',')[1];
+                }
+
+                console.log("🚀 Enviando petición a:", API_URL);
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: base64Image,
+                        prompt: userMsg
+                    })
+                });
+
+                console.log("📡 Status:", response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("❌ Error response:", errorText);
+                    throw new Error(`Error ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log("✅ Respuesta recibida:", data);
+                
+                const responseText = data.response || "No hay respuesta.";
+                addMessage("assistant", responseText);
+
+            } catch (err) {
+                console.error("💥 Error completo:", err);
+                addMessage("error", `Error: ${err.message}`);
+            } finally {
+                isThinking = false;
+                sendIcon.classList.remove('spin');
+                updateControls();
+            }
+        }
+
+        frontBtn.addEventListener('click', () => switchCamera("user"));
+        backBtn.addEventListener('click', () => switchCamera("environment"));
+        toggleCameraBtn.addEventListener('click', () => {
+            if (isActive) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        });
+        startButton.addEventListener('click', startCamera);
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        chatForm.addEventListener('submit', handleChatSubmit);
+
+        document.addEventListener('touchstart', function() {}, {passive: true});
+
+        updateControls();
+    </script>
+</body>
+</html>
